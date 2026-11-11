@@ -55,6 +55,7 @@ select,.arq{font:14px var(--sans);color:var(--fg);background:var(--panel);border
     <label class="dobra" for="dobra">Dobrar <input type="range" id="dobra" min="0" max="100" value="100"><output id="dobraV">100%</output></label>
     <button type="button" id="play">Montar</button>
     <label class="tog"><input type="checkbox" id="luz" checked> Luz acesa</label>
+    <label class="tog"><input type="checkbox" id="dentro"> Ver o difusor sanfonado</label>
     <label class="tog"><input type="checkbox" id="dif" checked> Vegetal</label>
   </div>
   <div class="bar">
@@ -265,7 +266,7 @@ const fioG=new THREE.Group(); scene.add(fioG); const leds=[];
  const sg=new THREE.SphereGeometry(1.6,8,6);for(let j=4;j<pts.length;j+=6){const s=new THREE.Mesh(sg,ledOn);s.position.copy(pts[j]);fioG.add(s);leds.push(s)}}
 
 // difusor sanfonado: anéis quadrados alternando o lado das cristas e dos vales (sem desenhar os losangos das quinas)
-const sanfOn=new THREE.MeshStandardMaterial({color:0xfffaf0,emissive:0xffd08a,emissiveIntensity:.45,transparent:true,opacity:.55,depthWrite:false,side:THREE.DoubleSide,flatShading:true});
+const sanfOn=new THREE.MeshStandardMaterial({color:0xfffaf0,emissive:0xffd08a,emissiveIntensity:.35,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide,flatShading:true});
 const sanfOff=new THREE.MeshStandardMaterial({color:0xf1ede4,transparent:true,opacity:.6,depthWrite:false,side:THREE.DoubleSide,flatShading:true});
 const sanfona=(()=>{const p=[],an=[];for(let j=0;j<=DIF_N;j++){const a=j%2?DIF_A/2-DIF_S:DIF_A/2;an.push([a,4+j*DIF_ALT/DIF_N])}
   const c=[[1,1],[-1,1],[-1,-1],[1,-1]];
@@ -273,7 +274,7 @@ const sanfona=(()=>{const p=[],an=[];for(let j=0;j<=DIF_N;j++){const a=j%2?DIF_A
     for(let k=0;k<4;k++){const [sx,sz]=c[k],[tx,tz]=c[(k+1)%4];
       const A=[sx*a0,y0,sz*a0],B=[tx*a0,y0,tz*a0],C=[tx*a1,y1,tz*a1],D=[sx*a1,y1,sz*a1];p.push(...A,...B,...C,...A,...C,...D)}}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.computeVertexNormals();
-  const m=new THREE.Mesh(g,sanfOn);m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g,20),new THREE.LineBasicMaterial({color:0xd9cbb0,transparent:true,opacity:.6})));scene.add(m);return m})();
+  const m=new THREE.Mesh(g,sanfOn);m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g,20),new THREE.LineBasicMaterial({color:0xb89a6a,transparent:true,opacity:.9})));scene.add(m);return m})();
 let dobraAtual=1;
 function dobrar(t){
   dobraAtual=t; sanfona.visible=t>0.97&&document.getElementById('dif').checked;
@@ -306,6 +307,9 @@ sl.oninput=()=>{anim=null;dobrar(sl.value/100)};
 let anim=null;
 document.getElementById('play').onclick=()=>{anim={t0:performance.now()}};
 document.getElementById('luz').onchange=luz;
+// ver por dentro: esconde as paredes e a folha de informações e mostra o difusor (monta a caixa se precisar)
+document.getElementById('dentro').onchange=e=>{const v=e.target.checked; if(v){anim=null;sl.value=100;dobrar(1);document.getElementById('dif').checked=true}
+  paredes.forEach(m=>m.visible=!v); luz(); vels.forEach(m=>m.visible=!v&&document.getElementById('dif').checked)};
 document.getElementById('dif').onchange=luz;
 let desenhoURL=null;
 function sobrepor(){
