@@ -1,0 +1,334 @@
+<title>Caixa-luminária em 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: palco 3D grande; abaixo, o controle de dobra e os interruptores; depois as medidas em mono. */
+:root{
+  --bg:#eeece7; --fg:#23211d; --muted:#6b675f; --panel:#f7f5f1; --line:#d6d2c8;
+  --accent:#0d6b47; --scene:#e6e3dc; --ground:#d3cfc5;
+  --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1a18; --fg:#ece8df; --muted:#a29d92; --panel:#252320; --line:#3a3732;
+  --accent:#4fbf8d; --scene:#191815; --ground:#2c2a25; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1b1a18; --fg:#ece8df; --muted:#a29d92; --panel:#252320; --line:#3a3732;
+  --accent:#4fbf8d; --scene:#191815; --ground:#2c2a25; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:20px;font-weight:600;margin:0;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:14px;max-width:70ch}
+#stage{position:relative;height:min(68vh,620px);min-height:340px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--scene)}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.hint{position:absolute;left:10px;bottom:8px;font:12px var(--mono);color:var(--muted);pointer-events:none}
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.dobra{display:flex;align-items:center;gap:10px;flex:1 1 280px;min-width:0}
+.dobra input{flex:1;min-width:0;accent-color:var(--accent)}
+.dobra output{font:500 13px var(--mono);width:4.5ch;text-align:right}
+button{font:500 14px var(--sans);color:var(--bg);background:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:8px 14px;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tog{display:flex;align-items:center;gap:6px;font-size:14px}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.info div{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:10px 12px;min-width:0}
+.info b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;margin-bottom:4px}
+.info span{font-size:14px}
+.mono{font-family:var(--mono)}
+select,.arq{font:14px var(--sans);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+.arq{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.arq input{position:absolute;width:1px;height:1px;opacity:0}
+.arq:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+#sobre{display:none;flex-direction:column;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+#sobre.on{display:flex}
+#sobre svg{width:100%;height:auto;display:block;background:var(--scene);border-radius:3px}
+#sobre .bar{font-size:13px;color:var(--muted)}
+#sobre p{margin:0;font-size:13px;color:var(--muted);max-width:80ch}
+</style>
+
+<div class="wrap">
+  <div>
+    <h1>Caixa-luminária em 3D</h1>
+    <p class="sub">Versão final (opção F, revisada depois da entrega: abas com fenda travando as alças e picote para o fio) dobrada a partir da própria faca: cada painel é uma folha de papel 150 g/m² presa pelos vincos. Arraste o controle para ir da folha plana à caixa montada. Troque a janela e carregue o desenho do vegetal para ver como ele aparece através da moldura.</p>
+  </div>
+  <div id="stage"><div class="hint">arrastar: girar · roda: zoom · botão direito: mover</div></div>
+  <div class="bar">
+    <label class="dobra" for="dobra">Dobrar <input type="range" id="dobra" min="0" max="100" value="100"><output id="dobraV">100%</output></label>
+    <button type="button" id="play">Montar</button>
+    <label class="tog"><input type="checkbox" id="luz" checked> Luz acesa</label>
+    <label class="tog"><input type="checkbox" id="dif" checked> Vegetal</label>
+  </div>
+  <div class="bar">
+    <label class="tog" for="jan">Janela <select id="jan"><option value="grade">Grade (4 vidros)</option><option value="chinesa" selected>Chinesa (final)</option><option value="brilho">Brilho</option></select></label>
+    <label class="tog"><input type="checkbox" id="cruz" checked> Grade por cima</label>
+    <label class="arq">Carregar desenho<input type="file" id="arq" accept="image/*"></label>
+    <span id="arqNome" style="font-size:13px;color:var(--muted)">nenhum desenho: o vegetal fica liso</span>
+    <label class="tog"><input type="checkbox" id="sob"> Sobrepor desenho e moldura</label>
+  </div>
+  <div id="sobre">
+    <div class="bar"><span>Faixa do vegetal vista de fora: frente · lateral · costas · lateral (+15 mm de emenda)</span>
+      <label class="dobra" for="opac" style="flex:0 1 260px">Moldura <input type="range" id="opac" min="0" max="100" value="85"><output id="opacV">85%</output></label></div>
+    <svg id="sobSvg" role="img" aria-label="Desenho com a moldura das janelas por cima"></svg>
+    <p id="sobTxt"></p>
+  </div>
+  <div class="info">
+    <div><b>Corpo</b><span class="mono">110 × 110 × 180 mm</span></div>
+    <div><b>Altura total</b><span class="mono">272 mm</span> <span style="color:var(--muted)">(corpo 180, faixa 35, alça 57)</span></div>
+    <div><b>Papel</b><span class="mono">#08402C · 150 g/m² ≈ 0,2 mm</span></div>
+    <div><b>Alça</b><span>Meias-luas lisas de 78 mm face a face sobre a tampa, furo de 50 mm para os dedos. As duas abas das laterais deitam por cima da tampa, uma sobre a outra, e as placas passam pela fenda de 79 × 1 mm de cada uma: as abas travam as alças e fecham o topo, sem cola.</span></div>
+    <div><b>Saída do fio</b><span>Picote de 16 × 9 mm no pé das costas: rasga-se para passar o fio das luzes.</span></div>
+    <div><b>Janela (final)</b><span>Chinesa com a cruz da grade: quatro vidros com os cantos recortados em quarto de círculo e enfeite em ✕ de quatro pétalas em cada canto.</span></div>
+    <div><b>Costura</b><span>Colada: aba de cola em trapézio por dentro da última lateral. No canto da costura o fole fica inteiro na frente, com uma aba além dele que deita por dentro da faixa da última lateral, como na referência.</span></div>
+    <div><b>Fundo</b><span>1-2-3 sem cola: frente com duas pontas, laterais, e a aba de trás com lingueta que entra sob a frente.</span></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ---- medidas da faca (mm), iguais às de gerar_faca.py, opção F ----
+const L=110, HW=180, T=0.2;
+// furos das janelas, gerados por gerar_faca.py (janelas.json): coordenadas da parede, x 0..L, h 0..HW
+const JANELAS={"grade":[[[11.0,50.0],[51.75,50.0],[51.75,93.0],[11.0,93.0]],[[11.0,97.0],[51.75,97.0],[51.75,140.0],[11.0,140.0]],[[58.25,50.0],[99.0,50.0],[99.0,93.0],[58.25,93.0]],[[58.25,97.0],[99.0,97.0],[99.0,140.0],[58.25,140.0]]],"chinesa":[[[74.0,165.0],[74.23,162.66],[74.91,160.41],[76.02,158.33],[77.51,156.51],[79.33,155.02],[81.41,153.91],[83.66,153.23],[86.0,153.0],[86.0,32.0],[83.66,31.77],[81.41,31.09],[79.33,29.98],[77.51,28.49],[76.02,26.67],[74.91,24.59],[74.23,22.34],[74.0,20.0],[36.0,20.0],[35.77,22.34],[35.09,24.59],[33.98,26.67],[32.49,28.49],[30.67,29.98],[28.59,31.09],[26.34,31.77],[24.0,32.0],[24.0,153.0],[26.34,153.23],[28.59,153.91],[30.67,155.02],[32.49,156.51],[33.98,158.33],[35.09,160.41],[35.77,162.66],[36.0,165.0]],[[25.84,21.84],[25.93,22.74],[26.08,23.58],[26.34,24.3],[26.76,24.88],[27.33,25.29],[28.06,25.56],[28.9,25.71],[29.8,25.8],[29.71,24.9],[29.56,24.06],[29.29,23.33],[28.88,22.76],[28.3,22.34],[27.58,22.08],[26.74,21.93]],[[22.16,21.84],[21.26,21.93],[20.42,22.08],[19.7,22.34],[19.12,22.76],[18.71,23.33],[18.44,24.06],[18.29,24.9],[18.2,25.8],[19.1,25.71],[19.94,25.56],[20.67,25.29],[21.24,24.88],[21.66,24.3],[21.92,23.58],[22.07,22.74]],[[22.16,18.16],[22.07,17.26],[21.92,16.42],[21.66,15.7],[21.24,15.12],[20.67,14.71],[19.94,14.44],[19.1,14.29],[18.2,14.2],[18.29,15.1],[18.44,15.94],[18.71,16.67],[19.12,17.24],[19.7,17.66],[20.42,17.92],[21.26,18.07]],[[25.84,18.16],[26.74,18.07],[27.58,17.92],[28.3,17.66],[28.88,17.24],[29.29,16.67],[29.56,15.94],[29.71,15.1],[29.8,14.2],[28.9,14.29],[28.06,14.44],[27.33,14.71],[26.76,15.12],[26.34,15.7],[26.08,16.42],[25.93,17.26]],[[87.84,21.84],[87.93,22.74],[88.08,23.58],[88.34,24.3],[88.76,24.88],[89.33,25.29],[90.06,25.56],[90.9,25.71],[91.8,25.8],[91.71,24.9],[91.56,24.06],[91.29,23.33],[90.88,22.76],[90.3,22.34],[89.58,22.08],[88.74,21.93]],[[84.16,21.84],[83.26,21.93],[82.42,22.08],[81.7,22.34],[81.12,22.76],[80.71,23.33],[80.44,24.06],[80.29,24.9],[80.2,25.8],[81.1,25.71],[81.94,25.56],[82.67,25.29],[83.24,24.88],[83.66,24.3],[83.92,23.58],[84.07,22.74]],[[84.16,18.16],[84.07,17.26],[83.92,16.42],[83.66,15.7],[83.24,15.12],[82.67,14.71],[81.94,14.44],[81.1,14.29],[80.2,14.2],[80.29,15.1],[80.44,15.94],[80.71,16.67],[81.12,17.24],[81.7,17.66],[82.42,17.92],[83.26,18.07]],[[87.84,18.16],[88.74,18.07],[89.58,17.92],[90.3,17.66],[90.88,17.24],[91.29,16.67],[91.56,15.94],[91.71,15.1],[91.8,14.2],[90.9,14.29],[90.06,14.44],[89.33,14.71],[88.76,15.12],[88.34,15.7],[88.08,16.42],[87.93,17.26]],[[25.84,166.84],[25.93,167.74],[26.08,168.58],[26.34,169.3],[26.76,169.88],[27.33,170.29],[28.06,170.56],[28.9,170.71],[29.8,170.8],[29.71,169.9],[29.56,169.06],[29.29,168.33],[28.88,167.76],[28.3,167.34],[27.58,167.08],[26.74,166.93]],[[22.16,166.84],[21.26,166.93],[20.42,167.08],[19.7,167.34],[19.12,167.76],[18.71,168.33],[18.44,169.06],[18.29,169.9],[18.2,170.8],[19.1,170.71],[19.94,170.56],[20.67,170.29],[21.24,169.88],[21.66,169.3],[21.92,168.58],[22.07,167.74]],[[22.16,163.16],[22.07,162.26],[21.92,161.42],[21.66,160.7],[21.24,160.12],[20.67,159.71],[19.94,159.44],[19.1,159.29],[18.2,159.2],[18.29,160.1],[18.44,160.94],[18.71,161.67],[19.12,162.24],[19.7,162.66],[20.42,162.92],[21.26,163.07]],[[25.84,163.16],[26.74,163.07],[27.58,162.92],[28.3,162.66],[28.88,162.24],[29.29,161.67],[29.56,160.94],[29.71,160.1],[29.8,159.2],[28.9,159.29],[28.06,159.44],[27.33,159.71],[26.76,160.12],[26.34,160.7],[26.08,161.42],[25.93,162.26]],[[87.84,166.84],[87.93,167.74],[88.08,168.58],[88.34,169.3],[88.76,169.88],[89.33,170.29],[90.06,170.56],[90.9,170.71],[91.8,170.8],[91.71,169.9],[91.56,169.06],[91.29,168.33],[90.88,167.76],[90.3,167.34],[89.58,167.08],[88.74,166.93]],[[84.16,166.84],[83.26,166.93],[82.42,167.08],[81.7,167.34],[81.12,167.76],[80.71,168.33],[80.44,169.06],[80.29,169.9],[80.2,170.8],[81.1,170.71],[81.94,170.56],[82.67,170.29],[83.24,169.88],[83.66,169.3],[83.92,168.58],[84.07,167.74]],[[84.16,163.16],[84.07,162.26],[83.92,161.42],[83.66,160.7],[83.24,160.12],[82.67,159.71],[81.94,159.44],[81.1,159.29],[80.2,159.2],[80.29,160.1],[80.44,160.94],[80.71,161.67],[81.12,162.24],[81.7,162.66],[82.42,162.92],[83.26,163.07]],[[87.84,163.16],[88.74,163.07],[89.58,162.92],[90.3,162.66],[90.88,162.24],[91.29,161.67],[91.56,160.94],[91.71,160.1],[91.8,159.2],[90.9,159.29],[90.06,159.44],[89.33,159.71],[88.76,160.12],[88.34,160.7],[88.08,161.42],[87.93,162.26]]],"brilho":[[[86.0,95.0],[85.81,95.03],[85.25,95.2],[84.33,95.62],[83.08,96.39],[81.53,97.58],[79.72,99.24],[77.71,101.42],[75.55,104.11],[73.3,107.31],[71.0,110.98],[68.72,115.08],[66.52,119.52],[64.43,124.22],[62.51,129.06],[60.78,133.95],[59.28,138.76],[58.01,143.36],[56.99,147.64],[56.21,151.48],[55.65,154.78],[55.29,157.44],[55.09,159.4],[55.01,160.6],[55.0,161.0],[54.99,160.6],[54.91,159.4],[54.71,157.44],[54.35,154.78],[53.79,151.48],[53.01,147.64],[51.99,143.36],[50.72,138.76],[49.22,133.95],[47.49,129.06],[45.57,124.22],[43.48,119.52],[41.28,115.08],[39.0,110.98],[36.7,107.31],[34.45,104.11],[32.29,101.42],[30.28,99.24],[28.47,97.58],[26.92,96.39],[25.67,95.62],[24.75,95.2],[24.19,95.03],[24.0,95.0],[24.19,94.97],[24.75,94.8],[25.67,94.38],[26.92,93.61],[28.47,92.42],[30.28,90.76],[32.29,88.58],[34.45,85.89],[36.7,82.69],[39.0,79.02],[41.28,74.92],[43.48,70.48],[45.57,65.78],[47.49,60.94],[49.22,56.05],[50.72,51.24],[51.99,46.64],[53.01,42.36],[53.79,38.52],[54.35,35.22],[54.71,32.56],[54.91,30.6],[54.99,29.4],[55.0,29.0],[55.01,29.4],[55.09,30.6],[55.29,32.56],[55.65,35.22],[56.21,38.52],[56.99,42.36],[58.01,46.64],[59.28,51.24],[60.78,56.05],[62.51,60.94],[64.43,65.78],[66.52,70.48],[68.72,74.92],[71.0,79.02],[73.3,82.69],[75.55,85.89],[77.71,88.58],[79.72,90.76],[81.53,92.42],[83.08,93.61],[84.33,94.38],[85.25,94.8],[85.81,94.97]],[[86.0,150.0],[85.95,150.0],[85.81,150.04],[85.57,150.11],[85.25,150.25],[84.85,150.47],[84.38,150.77],[83.86,151.17],[83.3,151.66],[82.72,152.24],[82.13,152.91],[81.54,153.65],[80.97,154.46],[80.43,155.31],[79.94,156.19],[79.49,157.08],[79.1,157.96],[78.78,158.79],[78.51,159.57],[78.31,160.27],[78.17,160.87],[78.08,161.35],[78.02,161.71],[78.0,161.93],[78.0,162.0],[78.0,161.93],[77.98,161.71],[77.92,161.35],[77.83,160.87],[77.69,160.27],[77.49,159.57],[77.22,158.79],[76.9,157.96],[76.51,157.08],[76.06,156.19],[75.57,155.31],[75.03,154.46],[74.46,153.65],[73.87,152.91],[73.28,152.24],[72.7,151.66],[72.14,151.17],[71.62,150.77],[71.15,150.47],[70.75,150.25],[70.43,150.11],[70.19,150.04],[70.05,150.0],[70.0,150.0],[70.05,150.0],[70.19,149.96],[70.43,149.89],[70.75,149.75],[71.15,149.53],[71.62,149.23],[72.14,148.83],[72.7,148.34],[73.28,147.76],[73.87,147.09],[74.46,146.35],[75.03,145.54],[75.57,144.69],[76.06,143.81],[76.51,142.92],[76.9,142.04],[77.22,141.21],[77.49,140.43],[77.69,139.73],[77.83,139.13],[77.92,138.65],[77.98,138.29],[78.0,138.07],[78.0,138.0],[78.0,138.07],[78.02,138.29],[78.08,138.65],[78.17,139.13],[78.31,139.73],[78.51,140.43],[78.78,141.21],[79.1,142.04],[79.49,142.92],[79.94,143.81],[80.43,144.69],[80.97,145.54],[81.54,146.35],[82.13,147.09],[82.72,147.76],[83.3,148.34],[83.86,148.83],[84.38,149.23],[84.85,149.53],[85.25,149.75],[85.57,149.89],[85.81,149.96],[85.95,150.0]],[[38.0,38.0],[37.96,38.0],[37.85,38.03],[37.68,38.08],[37.43,38.19],[37.13,38.35],[36.79,38.58],[36.4,38.87],[35.98,39.24],[35.54,39.68],[35.1,40.18],[34.66,40.74],[34.23,41.34],[33.83,41.98],[33.45,42.65],[33.12,43.31],[32.83,43.97],[32.58,44.59],[32.39,45.18],[32.23,45.7],[32.13,46.15],[32.06,46.51],[32.02,46.78],[32.0,46.95],[32.0,47.0],[32.0,46.95],[31.98,46.78],[31.94,46.51],[31.87,46.15],[31.77,45.7],[31.61,45.18],[31.42,44.59],[31.17,43.97],[30.88,43.31],[30.55,42.65],[30.17,41.98],[29.77,41.34],[29.34,40.74],[28.9,40.18],[28.46,39.68],[28.02,39.24],[27.6,38.87],[27.21,38.58],[26.87,38.35],[26.57,38.19],[26.32,38.08],[26.15,38.03],[26.04,38.0],[26.0,38.0],[26.04,38.0],[26.15,37.97],[26.32,37.92],[26.57,37.81],[26.87,37.65],[27.21,37.42],[27.6,37.13],[28.02,36.76],[28.46,36.32],[28.9,35.82],[29.34,35.26],[29.77,34.66],[30.17,34.02],[30.55,33.35],[30.88,32.69],[31.17,32.03],[31.42,31.41],[31.61,30.82],[31.77,30.3],[31.87,29.85],[31.94,29.49],[31.98,29.22],[32.0,29.05],[32.0,29.0],[32.0,29.05],[32.02,29.22],[32.06,29.49],[32.13,29.85],[32.23,30.3],[32.39,30.82],[32.58,31.41],[32.83,32.03],[33.12,32.69],[33.45,33.35],[33.83,34.02],[34.23,34.66],[34.66,35.26],[35.1,35.82],[35.54,36.32],[35.98,36.76],[36.4,37.13],[36.79,37.42],[37.13,37.65],[37.43,37.81],[37.68,37.92],[37.85,37.97],[37.96,38.0]]],"chinesa+grade":[[[51.75,93.0],[51.75,20.0],[36.0,20.0],[35.77,22.34],[35.09,24.59],[33.98,26.67],[32.49,28.49],[30.67,29.98],[28.59,31.09],[26.34,31.77],[24.0,32.0],[24.0,93.0]],[[51.75,165.0],[51.75,97.0],[24.0,97.0],[24.0,153.0],[26.34,153.23],[28.59,153.91],[30.67,155.02],[32.49,156.51],[33.98,158.33],[35.09,160.41],[35.77,162.66],[36.0,165.0]],[[58.25,93.0],[86.0,93.0],[86.0,32.0],[83.66,31.77],[81.41,31.09],[79.33,29.98],[77.51,28.49],[76.02,26.67],[74.91,24.59],[74.23,22.34],[74.0,20.0],[58.25,20.0]],[[58.25,97.0],[58.25,165.0],[74.0,165.0],[74.23,162.66],[74.91,160.41],[76.02,158.33],[77.51,156.51],[79.33,155.02],[81.41,153.91],[83.66,153.23],[86.0,153.0],[86.0,97.0]],[[25.84,21.84],[25.93,22.74],[26.08,23.58],[26.34,24.3],[26.76,24.88],[27.33,25.29],[28.06,25.56],[28.9,25.71],[29.8,25.8],[29.71,24.9],[29.56,24.06],[29.29,23.33],[28.88,22.76],[28.3,22.34],[27.58,22.08],[26.74,21.93]],[[22.16,21.84],[21.26,21.93],[20.42,22.08],[19.7,22.34],[19.12,22.76],[18.71,23.33],[18.44,24.06],[18.29,24.9],[18.2,25.8],[19.1,25.71],[19.94,25.56],[20.67,25.29],[21.24,24.88],[21.66,24.3],[21.92,23.58],[22.07,22.74]],[[22.16,18.16],[22.07,17.26],[21.92,16.42],[21.66,15.7],[21.24,15.12],[20.67,14.71],[19.94,14.44],[19.1,14.29],[18.2,14.2],[18.29,15.1],[18.44,15.94],[18.71,16.67],[19.12,17.24],[19.7,17.66],[20.42,17.92],[21.26,18.07]],[[25.84,18.16],[26.74,18.07],[27.58,17.92],[28.3,17.66],[28.88,17.24],[29.29,16.67],[29.56,15.94],[29.71,15.1],[29.8,14.2],[28.9,14.29],[28.06,14.44],[27.33,14.71],[26.76,15.12],[26.34,15.7],[26.08,16.42],[25.93,17.26]],[[87.84,21.84],[87.93,22.74],[88.08,23.58],[88.34,24.3],[88.76,24.88],[89.33,25.29],[90.06,25.56],[90.9,25.71],[91.8,25.8],[91.71,24.9],[91.56,24.06],[91.29,23.33],[90.88,22.76],[90.3,22.34],[89.58,22.08],[88.74,21.93]],[[84.16,21.84],[83.26,21.93],[82.42,22.08],[81.7,22.34],[81.12,22.76],[80.71,23.33],[80.44,24.06],[80.29,24.9],[80.2,25.8],[81.1,25.71],[81.94,25.56],[82.67,25.29],[83.24,24.88],[83.66,24.3],[83.92,23.58],[84.07,22.74]],[[84.16,18.16],[84.07,17.26],[83.92,16.42],[83.66,15.7],[83.24,15.12],[82.67,14.71],[81.94,14.44],[81.1,14.29],[80.2,14.2],[80.29,15.1],[80.44,15.94],[80.71,16.67],[81.12,17.24],[81.7,17.66],[82.42,17.92],[83.26,18.07]],[[87.84,18.16],[88.74,18.07],[89.58,17.92],[90.3,17.66],[90.88,17.24],[91.29,16.67],[91.56,15.94],[91.71,15.1],[91.8,14.2],[90.9,14.29],[90.06,14.44],[89.33,14.71],[88.76,15.12],[88.34,15.7],[88.08,16.42],[87.93,17.26]],[[25.84,166.84],[25.93,167.74],[26.08,168.58],[26.34,169.3],[26.76,169.88],[27.33,170.29],[28.06,170.56],[28.9,170.71],[29.8,170.8],[29.71,169.9],[29.56,169.06],[29.29,168.33],[28.88,167.76],[28.3,167.34],[27.58,167.08],[26.74,166.93]],[[22.16,166.84],[21.26,166.93],[20.42,167.08],[19.7,167.34],[19.12,167.76],[18.71,168.33],[18.44,169.06],[18.29,169.9],[18.2,170.8],[19.1,170.71],[19.94,170.56],[20.67,170.29],[21.24,169.88],[21.66,169.3],[21.92,168.58],[22.07,167.74]],[[22.16,163.16],[22.07,162.26],[21.92,161.42],[21.66,160.7],[21.24,160.12],[20.67,159.71],[19.94,159.44],[19.1,159.29],[18.2,159.2],[18.29,160.1],[18.44,160.94],[18.71,161.67],[19.12,162.24],[19.7,162.66],[20.42,162.92],[21.26,163.07]],[[25.84,163.16],[26.74,163.07],[27.58,162.92],[28.3,162.66],[28.88,162.24],[29.29,161.67],[29.56,160.94],[29.71,160.1],[29.8,159.2],[28.9,159.29],[28.06,159.44],[27.33,159.71],[26.76,160.12],[26.34,160.7],[26.08,161.42],[25.93,162.26]],[[87.84,166.84],[87.93,167.74],[88.08,168.58],[88.34,169.3],[88.76,169.88],[89.33,170.29],[90.06,170.56],[90.9,170.71],[91.8,170.8],[91.71,169.9],[91.56,169.06],[91.29,168.33],[90.88,167.76],[90.3,167.34],[89.58,167.08],[88.74,166.93]],[[84.16,166.84],[83.26,166.93],[82.42,167.08],[81.7,167.34],[81.12,167.76],[80.71,168.33],[80.44,169.06],[80.29,169.9],[80.2,170.8],[81.1,170.71],[81.94,170.56],[82.67,170.29],[83.24,169.88],[83.66,169.3],[83.92,168.58],[84.07,167.74]],[[84.16,163.16],[84.07,162.26],[83.92,161.42],[83.66,160.7],[83.24,160.12],[82.67,159.71],[81.94,159.44],[81.1,159.29],[80.2,159.2],[80.29,160.1],[80.44,160.94],[80.71,161.67],[81.12,162.24],[81.7,162.66],[82.42,162.92],[83.26,163.07]],[[87.84,163.16],[88.74,163.07],[89.58,162.92],[90.3,162.66],[90.88,162.24],[91.29,161.67],[91.56,160.94],[91.71,160.1],[91.8,159.2],[90.9,159.29],[90.06,159.44],[89.33,159.71],[88.76,160.12],[88.34,160.7],[88.08,161.42],[87.93,162.26]]],"brilho+grade":[[[51.75,93.0],[27.72,93.0],[28.47,92.42],[30.28,90.76],[32.29,88.58],[34.45,85.89],[36.7,82.69],[39.0,79.02],[41.28,74.92],[43.48,70.48],[45.57,65.78],[47.49,60.94],[49.22,56.05],[50.72,51.24],[51.75,47.5]],[[51.75,97.0],[51.75,142.5],[50.72,138.76],[49.22,133.95],[47.49,129.06],[45.57,124.22],[43.48,119.52],[41.28,115.08],[39.0,110.98],[36.7,107.31],[34.45,104.11],[32.29,101.42],[30.28,99.24],[28.47,97.58],[27.72,97.0]],[[58.25,93.0],[58.25,47.5],[59.28,51.24],[60.78,56.05],[62.51,60.94],[64.43,65.78],[66.52,70.48],[68.72,74.92],[71.0,79.02],[73.3,82.69],[75.55,85.89],[77.71,88.58],[79.72,90.76],[81.53,92.42],[82.28,93.0]],[[82.28,97.0],[81.53,97.58],[79.72,99.24],[77.71,101.42],[75.55,104.11],[73.3,107.31],[71.0,110.98],[68.72,115.08],[66.52,119.52],[64.43,124.22],[62.51,129.06],[60.78,133.95],[59.28,138.76],[58.25,142.5],[58.25,97.0]],[[86.0,150.0],[85.95,150.0],[85.81,150.04],[85.57,150.11],[85.25,150.25],[84.85,150.47],[84.38,150.77],[83.86,151.17],[83.3,151.66],[82.72,152.24],[82.13,152.91],[81.54,153.65],[80.97,154.46],[80.43,155.31],[79.94,156.19],[79.49,157.08],[79.1,157.96],[78.78,158.79],[78.51,159.57],[78.31,160.27],[78.17,160.87],[78.08,161.35],[78.02,161.71],[78.0,161.93],[78.0,162.0],[78.0,161.93],[77.98,161.71],[77.92,161.35],[77.83,160.87],[77.69,160.27],[77.49,159.57],[77.22,158.79],[76.9,157.96],[76.51,157.08],[76.06,156.19],[75.57,155.31],[75.03,154.46],[74.46,153.65],[73.87,152.91],[73.28,152.24],[72.7,151.66],[72.14,151.17],[71.62,150.77],[71.15,150.47],[70.75,150.25],[70.43,150.11],[70.19,150.04],[70.05,150.0],[70.0,150.0],[70.05,150.0],[70.19,149.96],[70.43,149.89],[70.75,149.75],[71.15,149.53],[71.62,149.23],[72.14,148.83],[72.7,148.34],[73.28,147.76],[73.87,147.09],[74.46,146.35],[75.03,145.54],[75.57,144.69],[76.06,143.81],[76.51,142.92],[76.9,142.04],[77.22,141.21],[77.49,140.43],[77.69,139.73],[77.83,139.13],[77.92,138.65],[77.98,138.29],[78.0,138.07],[78.0,138.0],[78.0,138.07],[78.02,138.29],[78.08,138.65],[78.17,139.13],[78.31,139.73],[78.51,140.43],[78.78,141.21],[79.1,142.04],[79.49,142.92],[79.94,143.81],[80.43,144.69],[80.97,145.54],[81.54,146.35],[82.13,147.09],[82.72,147.76],[83.3,148.34],[83.86,148.83],[84.38,149.23],[84.85,149.53],[85.25,149.75],[85.57,149.89],[85.81,149.96],[85.95,150.0]],[[38.0,38.0],[37.96,38.0],[37.85,38.03],[37.68,38.08],[37.43,38.19],[37.13,38.35],[36.79,38.58],[36.4,38.87],[35.98,39.24],[35.54,39.68],[35.1,40.18],[34.66,40.74],[34.23,41.34],[33.83,41.98],[33.45,42.65],[33.12,43.31],[32.83,43.97],[32.58,44.59],[32.39,45.18],[32.23,45.7],[32.13,46.15],[32.06,46.51],[32.02,46.78],[32.0,46.95],[32.0,47.0],[32.0,46.95],[31.98,46.78],[31.94,46.51],[31.87,46.15],[31.77,45.7],[31.61,45.18],[31.42,44.59],[31.17,43.97],[30.88,43.31],[30.55,42.65],[30.17,41.98],[29.77,41.34],[29.34,40.74],[28.9,40.18],[28.46,39.68],[28.02,39.24],[27.6,38.87],[27.21,38.58],[26.87,38.35],[26.57,38.19],[26.32,38.08],[26.15,38.03],[26.04,38.0],[26.0,38.0],[26.04,38.0],[26.15,37.97],[26.32,37.92],[26.57,37.81],[26.87,37.65],[27.21,37.42],[27.6,37.13],[28.02,36.76],[28.46,36.32],[28.9,35.82],[29.34,35.26],[29.77,34.66],[30.17,34.02],[30.55,33.35],[30.88,32.69],[31.17,32.03],[31.42,31.41],[31.61,30.82],[31.77,30.3],[31.87,29.85],[31.94,29.49],[31.98,29.22],[32.0,29.05],[32.0,29.0],[32.0,29.05],[32.02,29.22],[32.06,29.49],[32.13,29.85],[32.23,30.3],[32.39,30.82],[32.58,31.41],[32.83,32.03],[33.12,32.69],[33.45,33.35],[33.83,34.02],[34.23,34.66],[34.66,35.26],[35.1,35.82],[35.54,36.32],[35.98,36.76],[36.4,37.13],[36.79,37.42],[37.13,37.65],[37.43,37.81],[37.68,37.92],[37.85,37.97],[37.96,38.0]]]};
+const LADO_DIF=L-2*T-1, FOLGA_DIF=T+0.5, SOBRA_DIF=10, LARG_DIF=4*LADO_DIF+15;
+let JAN='chinesa+grade';
+const TOPO_L=92, FAIXA=36, FOLE=(L-TOPO_L)/2, ABA_LAT=TOPO_L-1, ABA_CHANFRO=1.5, TAMPA=TOPO_L/2-T;
+const PW=78, PB=18, FURO_R=25;
+// abas laterais por cima da tampa, com a fenda por onde passam as duas placas (igual a fenda_aba() de gerar_faca.py)
+const FENDA_W=1, FENDA_0=TOPO_L/2-PW/2-0.5, FENDA_1=TOPO_L/2+PW/2+0.5;
+const CABO_W=16, CABO_H=9, CABO_Y=4; // picote da saída do fio, no pé das costas
+const SX=L/572, SY=L/286; // fundo medido na referência (px), escalado por eixo da base
+const TETA=Math.asin(FOLE/FAIXA);
+const P2=Math.PI/2;
+
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(36,1,1,4000);
+camera.position.set(330,300,430);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.target.set(0,125,0);
+scene.add(new THREE.HemisphereLight(0xffffff,0x887766,0.8));
+const sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(200,400,300); scene.add(sun);
+const glow=new THREE.PointLight(0xffc77a,0,420,1.4); glow.position.set(0,HW/2,0); scene.add(glow);
+
+const paper=new THREE.MeshStandardMaterial({color:0x08402C,roughness:.9,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+const lineMat=new THREE.LineBasicMaterial({color:0x3f8a68});
+const velOn=new THREE.MeshStandardMaterial({color:0xfff3d6,emissive:0xffc46a,emissiveIntensity:.5,transparent:true,opacity:.5,depthWrite:false,side:THREE.DoubleSide});
+const velOff=new THREE.MeshStandardMaterial({color:0xeeeadf,transparent:true,opacity:.35,depthWrite:false,side:THREE.DoubleSide});
+const ledOn=new THREE.MeshBasicMaterial({color:0xffd27a}), ledOff=new THREE.MeshStandardMaterial({color:0x8a8270});
+
+const hinges=[], vels=[];
+const V=p=>new THREE.Vector2(p[0],p[1]);
+function arc(cx,cy,r,a0,a1,n=8){const o=[];for(let i=0;i<=n;i++){const a=(a0+(a1-a0)*i/n)*Math.PI/180;o.push([cx+r*Math.cos(a),cy+r*Math.sin(a)])}return o}
+function panel(parent,pts,holes=[]){
+  const s=new THREE.Shape(pts.map(V));
+  holes.forEach(h=>s.holes.push(new THREE.Path(h.map(V))));
+  const g=new THREE.ShapeGeometry(s,6), m=new THREE.Mesh(g,paper);
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g),lineMat));
+  parent.add(m); return m;
+}
+// vinco: grupo com o eixo de dobra passando pela origem; ângulo final * fração da dobra
+// fase: trecho do controle (0..1) em que esta dobra acontece; o corpo e as alças fecham até 70 %, depois as abas 1 e 2
+function vinco(parent,pos,eixo,ang,fase=[0,0.7]){const h=new THREE.Group();h.position.set(...pos);parent.add(h);hinges.push({h,eixo,ang,fase});return h}
+const rect=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+function janelas(){return JANELAS[JAN]}
+function faixaJan(){const hs=JANELAS[JAN].flat().map(p=>p[1]);return [Math.min(...hs)-SOBRA_DIF,Math.max(...hs)+SOBRA_DIF]}
+const paredes=[];
+function parede(parent){const m=panel(parent,fachada,janelas());paredes.push(m);
+  if(paredes.length===3){ // picote da saída do fio, no pé das costas
+    const x0=(L-CABO_W)/2, q=rect(x0,CABO_Y,x0+CABO_W,CABO_Y+CABO_H).map(([x,y])=>new THREE.Vector3(x,y,0.3));
+    const pic=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(q),new THREE.LineDashedMaterial({color:0xcfe8da,dashSize:1.2,gapSize:0.8}));
+    pic.computeLineDistances(); m.add(pic);}
+  return m}
+function geoParede(m){ // troca o desenho da janela sem refazer as dobras
+  const s=new THREE.Shape(fachada.map(V)); janelas().forEach(h=>s.holes.push(new THREE.Path(h.map(V))));
+  const g=new THREE.ShapeGeometry(s,6); m.geometry.dispose(); m.geometry=g;
+  const e=m.children[0]; e.geometry.dispose(); e.geometry=new THREE.EdgesGeometry(g);
+}
+function vegetal(parent){const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),velOn);m.userData.face=vels.length;parent.add(m);vels.push(m);posVegetal(m)}
+function posVegetal(m){const [a,b]=faixaJan();m.geometry.dispose();m.geometry=new THREE.PlaneGeometry(LADO_DIF,b-a);m.position.set(FOLGA_DIF+LADO_DIF/2,(a+b)/2,-0.8)}
+
+function fundo(parent,i){ // fundo 1-2-3 da referência: 1 frente, 2 laterais, 3 costas por fora
+  const y=[0.9,0.45,0,0.45][i];
+  const h=vinco(parent,[0,y,0],'x',P2);
+  const ref=[
+    [[0,0],[0,212],[8,220],[134,220],[142,212],[142,145],[430,145],[430,212],[438,220],[564,220],[572,212],[572,0]],
+    [[0,0],[143,143],[128,205],[138,220],[279,220],[286,213],[286,0]],
+    [[0,0],[143,143],[143,208],[155,220],[417,220],[429,208],[429,143],[572,0]],
+    [[0,0],[0,213],[7,220],[148,220],[158,205],[143,143],[286,0]]][i];
+  const sa=i%2?SY:SX, sp=i%2?SX:SY;
+  panel(h,ref.map(([u,v])=>[u*sa,-v*sp]));
+}
+const finsPend=[];
+function meioFole(band,esq){ // meia aba do fole: gira na aresta da faixa até encostar na diagonal do canto
+  const O=esq?[0,0]:[L,0], D=esq?[FOLE,FAIXA]:[L-FOLE,FAIXA], C=esq?[0,FAIXA]:[L,FAIXA];
+  const beta=Math.atan2(D[1]-O[1],D[0]-O[0]);
+  const s=new THREE.Group(); s.position.set(O[0],O[1],0); s.rotation.z=beta; band.add(s);
+  const loc=q=>{const dx=q[0]-O[0],dy=q[1]-O[1],cb=Math.cos(-beta),sb=Math.sin(-beta);return [dx*cb-dy*sb,dx*sb+dy*cb]};
+  const h=vinco(s,[0,0,0],'x',0); const ent=hinges[hinges.length-1];
+  panel(h,[[0,0],loc(D),loc(C)]);
+  const cl=loc(C), alvo=new THREE.Object3D(); alvo.position.set(cl[0],cl[1],0); h.add(alvo);
+  finsPend.push({ent,alvo,esq});
+  return {h,loc};
+}
+// canto da costura (referência): o fole inteiro fica na frente; a meia aba de fora gira no vale do meio
+// e a aba além dela deita por dentro da faixa da última lateral
+const ABA_U=[0.13,0.97], ABA_W=45/143*FAIXA, bandas=[], costuraPend=[];
+function eixoEm(parent,conv,A,B){ // grupo com o eixo x ao longo de A→B (pontos da faixa), mais a conversão para ele
+  const a=conv(A), b=conv(B), g=Math.atan2(b[1]-a[1],b[0]-a[0]);
+  const s=new THREE.Group(); s.position.set(a[0],a[1],0); s.rotation.z=g; parent.add(s);
+  const h=vinco(s,[0,0,0],'x',0), ent=hinges[hinges.length-1];
+  const c=q=>{const p=conv(q),dx=p[0]-a[0],dy=p[1]-a[1],cg=Math.cos(-g),sg=Math.sin(-g);return [dx*cg-dy*sg,dx*sg+dy*cg]};
+  return {h,ent,c};
+}
+function foleCostura(meia){
+  const O=[0,0], C=[0,FAIXA], E=[-FOLE,FAIXA];
+  const fora=eixoEm(meia.h,meia.loc,O,C); panel(fora.h,[fora.c(O),fora.c(C),fora.c(E)].map(([x,y])=>[x,y]));
+  const n=Math.hypot(FOLE,FAIXA), nx=-FAIXA/n, ny=-FOLE/n, P=u=>[u*E[0]+ABA_W*nx,u*E[1]+ABA_W*ny];
+  const aba=eixoEm(fora.h,fora.c,O,E); panel(aba.h,[O,P(ABA_U[0]),P(ABA_U[1]),E].map(aba.c));
+  const pE=new THREE.Object3D(), pA=new THREE.Object3D();
+  pE.position.set(...fora.c(E),0); fora.h.add(pE);
+  const qa=P(0.55); pA.position.set(...aba.c(qa),0); aba.h.add(pA);
+  costuraPend.push({ent:fora.ent,ponto:pE,alvo:[L-FOLE,FAIXA,0]},{ent:aba.ent,ponto:pA,alvo:[L+qa[0],qa[1],-0.5]});
+}
+function resolverCostura(){ // procura o ângulo que leva cada ponto ao seu lugar na faixa da última lateral
+  dobrar(1);
+  for(const f of costuraPend){
+    const banda=bandas[3], alvo=new THREE.Vector3(...f.alvo);
+    const d=q=>{f.ent.h.rotation.set(0,0,0);f.ent.h.rotation.x=q;root.updateMatrixWorld(true);
+      const w=f.ponto.getWorldPosition(new THREE.Vector3()); banda.worldToLocal(w); return w.distanceTo(alvo)};
+    let best=0, bd=1e9; for(let k=-720;k<=720;k++){const q=k*Math.PI/720, v=d(q); if(v<bd){bd=v;best=q}}
+    let lo=best-Math.PI/720, hi=best+Math.PI/720;
+    for(let k=0;k<60;k++){const m1=lo+(hi-lo)/3, m2=hi-(hi-lo)/3; if(d(m1)<d(m2)) hi=m2; else lo=m1}
+    f.ent.ang=(lo+hi)/2; f.ent.h.rotation.x=f.ent.ang;
+  }
+}
+function resolverFoles(){ // depois de montar a árvore: acha o ângulo de cada meia aba (bisseção)
+  for(const f of finsPend){
+    const wall=f.parede, fx=q=>{f.ent.h.rotation.set(0,0,0);f.ent.h.rotation.x=q;root.updateMatrixWorld(true);
+      const w=f.alvo.getWorldPosition(new THREE.Vector3()); wall.worldToLocal(w);
+      return f.esq? w.x+w.z : (w.x-L)-w.z;};
+    let sg=1; {dobrar(1); const z0=(()=>{fx(0);const w=f.alvo.getWorldPosition(new THREE.Vector3());wall.worldToLocal(w);return w.z})();
+      fx(P2); const w=f.alvo.getWorldPosition(new THREE.Vector3()); wall.worldToLocal(w); if(w.z>z0) sg=-1;}
+    let lo=0, hi=Math.PI*sg, flo=fx(lo);
+    for(let k=0;k<50;k++){const m=(lo+hi)/2,fm=fx(m); if(Math.sign(fm)===Math.sign(flo)){lo=m;flo=fm}else hi=m}
+    f.ent.ang=(lo+hi)/2;
+  }
+}
+function topo(wall,i){ // faixa inclinada, foles, tampa/abas e placa da alça
+  const band=vinco(wall,[0,HW,0],'x',-TETA); bandas[i]=band;
+  panel(band,[[0,0],[L,0],[L-FOLE,FAIXA],[FOLE,FAIXA]]);
+  for(const esq of [true,false]){
+    if(i===3&&!esq) continue;                       // borda livre: o fole da costura vem da frente
+    const m=meioFole(band,esq); finsPend[finsPend.length-1].parede=wall;
+    if(i===0&&esq) foleCostura(m);
+  }
+  const xc=L/2, xa=FOLE, xb=L-FOLE;
+  if(i===1||i===3){
+    const t=vinco(band,[0,FAIXA,i===1?0.6:1.1],'x',-(P2-TETA),i===1?[0.7,0.85]:[0.85,1]); // 1 por cima das meias tampas, 2 por cima da 1
+    panel(t,[[xa,0],[xa+ABA_CHANFRO,ABA_LAT],[xb-ABA_CHANFRO,ABA_LAT],[xb,0]],[rect(xc-FENDA_W/2,FENDA_0,xc+FENDA_W/2,FENDA_1)]);
+    return;
+  }
+  const t=vinco(band,[0,FAIXA,0],'x',-(P2-TETA));
+  panel(t,[[xa,0],[xb,0],[xb,TAMPA],[xa,TAMPA]]);
+  const pl=vinco(t,[0,TAMPA,0],'x',P2), pa=xc-PW/2, pb=xc+PW/2;
+  const contorno=[[pa,0],[pb,0],...arc(xc,PB,PW/2,0,180,24)];
+  const furo=[[xc+FURO_R,PB],...arc(xc,PB,FURO_R,0,180,16)];
+  panel(pl,contorno,[furo]);
+}
+const fachada=[[0,0],[L,0],[L,HW],[0,HW]];
+const root=new THREE.Group(); root.position.set(-L/2,0,L/2); scene.add(root);
+// parede da frente é a base; as outras giram 90° em cada canto
+parede(root); vegetal(root); fundo(root,0); topo(root,0);
+let par=root;
+for(let i=1;i<4;i++){
+  par=vinco(par,[L,0,0],'y',P2);
+  parede(par); vegetal(par); fundo(par,i); topo(par,i);
+}
+// costura colada: aba de cola em trapézio da frente, por dentro da última lateral
+{const CSX=L/200, CSY=HW/250;
+ const t=vinco(root,[1.2,0,0],'y',-P2), pr=31.5*CSX;
+ panel(t,[[0,0],[-pr,7*CSY],[-pr,HW-8.4*CSY],[0,HW]]);}
+// fio de LED solto lá dentro (só aparece com a caixa montada)
+const fioG=new THREE.Group(); scene.add(fioG); const leds=[];
+{const pts=[];for(let j=0;j<=160;j++){const t=j/160,a=t*Math.PI*9,r=22+10*Math.sin(t*7);pts.push(new THREE.Vector3(r*Math.cos(a),8+t*(HW-30),r*Math.sin(a)))}
+ fioG.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x9a8f78})));
+ const sg=new THREE.SphereGeometry(1.6,8,6);for(let j=4;j<pts.length;j+=6){const s=new THREE.Mesh(sg,ledOn);s.position.copy(pts[j]);fioG.add(s);leds.push(s)}}
+
+function dobrar(t){
+  hinges.forEach(({h,eixo,ang,fase})=>{const k=Math.min(1,Math.max(0,(t-fase[0])/(fase[1]-fase[0])));h.rotation.set(0,0,0);h.rotation[eixo]=ang*k});
+  fioG.visible=t>0.97;
+  document.getElementById('dobraV').textContent=Math.round(t*100)+'%';
+}
+let desenho=null; const matDes=[];
+function matsDesenho(){ // um material por face, cada um mostrando o seu trecho da faixa
+  matDes.forEach(m=>{m.on.dispose();m.off.dispose()}); matDes.length=0;
+  if(!desenho) return;
+  for(let i=0;i<4;i++){
+    const t=desenho.clone(); t.needsUpdate=true; t.repeat.set(LADO_DIF/LARG_DIF,1); t.offset.set(i*LADO_DIF/LARG_DIF,0);
+    matDes.push({on:new THREE.MeshStandardMaterial({map:t,emissive:0xffffff,emissiveMap:t,emissiveIntensity:.55,transparent:true,opacity:.92,depthWrite:false,side:THREE.DoubleSide}),
+                 off:new THREE.MeshStandardMaterial({map:t,transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide})});
+  }
+}
+function luz(){
+  const on=document.getElementById('luz').checked, dif=document.getElementById('dif').checked;
+  vels.forEach(v=>{const d=matDes[v.userData.face];v.material=d?(on?d.on:d.off):(on?velOn:velOff);v.visible=dif});
+  leds.forEach(s=>s.material=on?ledOn:ledOff);
+  glow.intensity=on?1.5:0;
+}
+function tema(){scene.background=new THREE.Color(css('--scene'))}
+function ajusta(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+
+const sl=document.getElementById('dobra');
+sl.oninput=()=>{anim=null;dobrar(sl.value/100)};
+let anim=null;
+document.getElementById('play').onclick=()=>{anim={t0:performance.now()}};
+document.getElementById('luz').onchange=luz;
+document.getElementById('dif').onchange=luz;
+let desenhoURL=null;
+function sobrepor(){
+  const box=document.getElementById('sobre'), on=document.getElementById('sob').checked;
+  box.classList.toggle('on',on); if(!on) return;
+  const [a,b]=faixaJan(), H=b-a, W=LARG_DIF, op=document.getElementById('opac').value/100;
+  document.getElementById('opacV').textContent=Math.round(op*100)+'%';
+  let furos='';
+  for(let i=0;i<4;i++) for(const f of janelas())
+    furos+='M'+f.map(([x,h])=>(i*LADO_DIF+x-FOLGA_DIF).toFixed(2)+','+(b-h).toFixed(2)).join('L')+'Z';
+  const fundo=desenhoURL?`<image href="${desenhoURL}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="none"/>`
+    :`<rect width="${W}" height="${H}" fill="#f3e6c8"/><text x="${W/2}" y="${H/2}" font-size="8" text-anchor="middle" fill="#8a7d60" font-family="sans-serif">carregue um desenho</text>`;
+  let linhas=''; for(let i=1;i<4;i++) linhas+=`<line x1="${i*LADO_DIF}" y1="0" x2="${i*LADO_DIF}" y2="${H}" stroke="#ffffff" stroke-opacity=".6" stroke-width=".4" stroke-dasharray="2 2"/>`;
+  const svg=document.getElementById('sobSvg'); svg.setAttribute('viewBox',`-2 -2 ${W+4} ${H+4}`);
+  svg.innerHTML=fundo+`<path d="M0,0H${W}V${H}H0Z${furos}" fill="#08402C" fill-opacity="${op}" fill-rule="evenodd" stroke="#4fbf8d" stroke-width=".35"/>`+linhas
+    +`<rect x="${4*LADO_DIF}" y="0" width="15" height="${H}" fill="#000" fill-opacity=".25"/>`;
+  document.getElementById('sobTxt').textContent=`Faixa de ${W.toFixed(1).replace('.',',')} × ${H.toFixed(0)} mm. O desenho é esticado para essa proporção, então prepare a imagem nela. A faixa escura à direita fica sob a emenda. O molde em SVG para desenhar está em ${JAN==='chinesa+grade'?'arquivo/faca/molde-desenho.svg':'(gere com JANELA='+JAN+')'}.`;
+}
+function trocaJanela(){
+  const base=document.getElementById('jan').value, cz=document.getElementById('cruz');
+  cz.disabled=base==='grade'; if(cz.disabled) cz.checked=false;
+  JAN=base+(cz.checked?'+grade':''); paredes.forEach(geoParede); vels.forEach(posVegetal); sobrepor();
+}
+document.getElementById('jan').onchange=trocaJanela;
+document.getElementById('cruz').onchange=trocaJanela;
+document.getElementById('sob').onchange=sobrepor;
+document.getElementById('opac').oninput=sobrepor;
+document.getElementById('arq').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{desenhoURL=r.result;
+    new THREE.TextureLoader().load(desenhoURL,t=>{if(desenho)desenho.dispose();desenho=t;matsDesenho();luz();sobrepor()});
+    document.getElementById('arqNome').textContent=f.name;};
+  r.readAsDataURL(f);
+};
+new ResizeObserver(ajusta).observe(stage);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',tema);
+new MutationObserver(tema).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+tema();ajusta();luz();resolverFoles();resolverCostura();dobrar(1);
+const reduz=matchMedia('(prefers-reduced-motion: reduce)').matches;
+(function loop(now){
+  requestAnimationFrame(loop);
+  if(anim){const t=reduz?1:Math.min(1,(now-anim.t0)/3500);const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;sl.value=Math.round(e*100);dobrar(e);if(t>=1)anim=null}
+  controls.update();renderer.render(scene,camera);
+})(performance.now());
+</script>
