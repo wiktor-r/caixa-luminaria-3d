@@ -74,7 +74,7 @@ select,.arq{font:14px var(--sans);color:var(--fg);background:var(--panel);border
     <div><b>Corpo</b><span class="mono">110 × 110 × 180 mm</span></div>
     <div><b>Altura total</b><span class="mono">272 mm</span> <span style="color:var(--muted)">(corpo 180, faixa 35, alça 57)</span></div>
     <div><b>Papel</b><span class="mono">#08402C · 150 g/m² ≈ 0,2 mm</span></div>
-    <div><b>Alça</b><span>Meias-luas lisas de 78 mm face a face sobre a tampa, furo de 50 mm para os dedos. As duas abas das laterais deitam por cima da tampa, uma sobre a outra, e as placas passam pela fenda de 79 × 1 mm de cada uma: as abas travam as alças e fecham o topo, sem cola.</span></div>
+    <div><b>Alça</b><span>Meias-luas lisas de 78 mm face a face sobre a tampa, furo de 50 mm para os dedos. As duas abas das laterais deitam por cima da tampa, uma sobre a outra, e as placas passam pela fenda de 75 × 0,6 mm de cada uma. A fenda é mais curta que a placa: as pontas dela caem num entalhe em gancho (2,5 × 2 mm) no pé de cada borda da alça, e o ombro acima segura as abas. Sem cola.</span></div>
     <div><b>Saída do fio</b><span>Picote de 16 × 9 mm no pé das costas: rasga-se para passar o fio das luzes.</span></div>
     <div><b>Janela (final)</b><span>Chinesa com a cruz da grade: quatro vidros com os cantos recortados em quarto de círculo e enfeite em ✕ de quatro pétalas em cada canto.</span></div>
     <div><b>Costura</b><span>Colada: aba de cola em trapézio por dentro da última lateral. No canto da costura o fole fica inteiro na frente, com uma aba além dele que deita por dentro da faixa da última lateral, como na referência.</span></div>
@@ -94,7 +94,8 @@ let JAN='chinesa+grade';
 const TOPO_L=92, FAIXA=36, FOLE=(L-TOPO_L)/2, ABA_LAT=TOPO_L-1, ABA_CHANFRO=1.5, TAMPA=TOPO_L/2-T;
 const PW=78, PB=18, FURO_R=25;
 // abas laterais por cima da tampa, com a fenda por onde passam as duas placas (igual a fenda_aba() de gerar_faca.py)
-const FENDA_W=1, FENDA_0=TOPO_L/2-PW/2-0.5, FENDA_1=TOPO_L/2+PW/2+0.5;
+// a fenda é 1,5 mm mais curta que a placa de cada lado: as pontas caem no entalhe em gancho do pé da placa
+const FENDA_W=0.6, FENDA_0=TOPO_L/2-PW/2+1.5, FENDA_1=TOPO_L/2+PW/2-1.5, ENT_P=2.5, ENT_H=2;
 const CABO_W=16, CABO_H=9, CABO_Y=4; // picote da saída do fio, no pé das costas
 const SX=L/572, SY=L/286; // fundo medido na referência (px), escalado por eixo da base
 const TETA=Math.asin(FOLE/FAIXA);
@@ -235,7 +236,7 @@ function topo(wall,i){ // faixa inclinada, foles, tampa/abas e placa da alça
   const t=vinco(band,[0,FAIXA,0],'x',-(P2-TETA));
   panel(t,[[xa,0],[xb,0],[xb,TAMPA],[xa,TAMPA]]);
   const pl=vinco(t,[0,TAMPA,0],'x',P2), pa=xc-PW/2, pb=xc+PW/2;
-  const contorno=[[pa,0],[pb,0],...arc(xc,PB,PW/2,0,180,24)];
+  const contorno=[[pa+ENT_P,0],[pb-ENT_P,0],[pb-ENT_P,ENT_H],[pb,ENT_H],...arc(xc,PB,PW/2,0,180,24),[pa,ENT_H],[pa+ENT_P,ENT_H]];
   const furo=[[xc+FURO_R,PB],...arc(xc,PB,FURO_R,0,180,16)];
   panel(pl,contorno,[furo]);
 }
