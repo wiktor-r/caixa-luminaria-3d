@@ -48,13 +48,13 @@ select,.arq{font:14px var(--sans);color:var(--fg);background:var(--panel);border
 <div class="wrap">
   <div>
     <h1>Caixa-luminária em 3D · lampião de bronze</h1>
-    <p class="sub">Exploração do exterior: a impressão do lampião de bronze (tudo metal por fora; o vidro é o do rótulo, visto pela janela) aplicada em cada painel pelo lugar que ele ocupa na faca, então dobra junto com o papel. Versão final (opção F, revisada depois da entrega: abas com fenda travando as alças e picote para o fio) dobrada a partir da própria faca: cada painel é uma folha de papel 150 g/m² presa pelos vincos. Arraste o controle para ir da folha plana à caixa montada. Troque a janela, tire o rótulo para ver o abajur de papel vegetal pelas aberturas (é o modo luminária), ou carregue outro rótulo para ver como ele aparece através da moldura.</p>
+    <p class="sub">Exploração do exterior: a impressão do lampião de bronze (tudo metal por fora; o vidro é o do rótulo, visto pela janela) aplicada em cada painel pelo lugar que ele ocupa na faca, então dobra junto com o papel. Acender a luz tira o rótulo (ele sai antes de a caixa virar luminária) e mostra o abajur de papel vegetal. Versão final (opção F, revisada depois da entrega: abas com fenda travando as alças e picote para o fio) dobrada a partir da própria faca: cada painel é uma folha de papel 150 g/m² presa pelos vincos. Arraste o controle para ir da folha plana à caixa montada. Troque a janela, tire o rótulo para ver o abajur de papel vegetal pelas aberturas (é o modo luminária), ou carregue outro rótulo para ver como ele aparece através da moldura.</p>
   </div>
   <div id="stage"><div class="hint">arrastar: girar · roda: zoom · botão direito: mover</div></div>
   <div class="bar">
     <label class="dobra" for="dobra">Dobrar <input type="range" id="dobra" min="0" max="100" value="100"><output id="dobraV">100%</output></label>
     <button type="button" id="play">Montar</button>
-    <label class="tog"><input type="checkbox" id="luz" checked> Luz acesa</label>
+    <label class="tog"><input type="checkbox" id="luz"> Luz acesa</label>
     <label class="tog"><input type="checkbox" id="dentro" checked> Abajur (difusor)</label>
     <label class="tog"><input type="checkbox" id="dif" checked> Rótulo</label>
     <label class="tog"><input type="checkbox" id="noite"> Sala escura</label>
@@ -334,10 +334,10 @@ const sl=document.getElementById('dobra');
 sl.oninput=()=>{anim=null;dobrar(sl.value/100)};
 let anim=null;
 document.getElementById('play').onclick=()=>{anim={t0:performance.now()}};
-document.getElementById('luz').onchange=luz;
+document.getElementById('luz').onchange=()=>{if(document.getElementById('luz').checked) document.getElementById('dif').checked=false; luz()};
 // difusor: só aparece ou some dentro da caixa montada; a caixa fica sempre inteira. Sem o rótulo, ele aparece pelas janelas
 document.getElementById('dentro').onchange=luz;
-document.getElementById('dif').onchange=luz;
+document.getElementById('dif').onchange=()=>{if(document.getElementById('dif').checked) document.getElementById('luz').checked=false; luz()};
 document.getElementById('noite').onchange=luz;
 let desenhoURL=null;
 function sobrepor(){
