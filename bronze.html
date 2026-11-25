@@ -58,6 +58,7 @@ select,.arq{font:14px var(--sans);color:var(--fg);background:var(--panel);border
     <label class="tog"><input type="checkbox" id="dentro" checked> Abajur (difusor)</label>
     <label class="tog"><input type="checkbox" id="dif" checked> Rótulo</label>
     <label class="tog"><input type="checkbox" id="noite"> Sala escura</label>
+    <label class="tog"><input type="checkbox" id="transp"> Caixa transparente</label>
   </div>
   <div class="bar">
     <label class="tog" for="jan">Janela <select id="jan"><option value="grade">Grade (4 vidros)</option><option value="chinesa" selected>Chinesa (final)</option><option value="brilho">Brilho</option></select></label>
@@ -339,6 +340,10 @@ document.getElementById('luz').onchange=()=>{if(document.getElementById('luz').c
 document.getElementById('dentro').onchange=luz;
 document.getElementById('dif').onchange=()=>{if(document.getElementById('dif').checked) document.getElementById('luz').checked=false; luz()};
 document.getElementById('noite').onchange=luz;
+function transparente(){const t=document.getElementById('transp').checked;
+  paper.forEach(m=>{m.transparent=t; m.opacity=t?0.25:1; m.depthWrite=!t; m.needsUpdate=true});
+  scene.traverse(o=>{if(o.isMesh&&o.material===paper) o.renderOrder=t?10:0});}
+document.getElementById('transp').onchange=transparente;
 let desenhoURL=null;
 function sobrepor(){
   const box=document.getElementById('sobre'), on=document.getElementById('sob').checked;
